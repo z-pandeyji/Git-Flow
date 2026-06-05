@@ -1,0 +1,10 @@
+*.md
+*.log
+.DS_Store
+.bfo-data/
+.venv/
+node_modules/
+dist/
+Error-Images/
+__pycache__/
+*.pyc
