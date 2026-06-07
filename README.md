@@ -19,7 +19,7 @@ This prototype is my attempt at that question. It is not a finished product or a
 The current test suite covers these behaviors:
 
 - Public GitHub URL validation and local scan creation.
-- Demo repository analysis that produces behavior flows with evidence IDs, confidence labels, source files, and source locations.
+- Generated test repository analysis that produces behavior flows with evidence IDs, confidence labels, source files, and source locations.
 - Repository classification for sample business app, infrastructure, CLI, library, and runtime repositories.
 - Structure graph generation from files, routes, symbols, and local JS/TS imports.
 - Directory `index.ts` import resolution, including flow expansion through that import.
@@ -71,7 +71,7 @@ http://127.0.0.1:5173
 ## How To Use
 
 1. Enter a public GitHub repo URL, for example `https://github.com/expressjs/express`.
-2. Click `Scan`, or use `Demo` for the built-in demo repository.
+2. Click `Scan`, or choose one of the smaller demo-friendly open-source business examples.
 3. Review the Flow Map, Structure Graph, Risks, Unknowns, and Summary tabs.
 4. Select a flow step, risk, or graph node to inspect the source evidence.
 

@@ -113,6 +113,7 @@ def _sparse_paths(repo_name: str) -> list[str]:
         "/lib/**",
         "/app/**",
         "/apps/**",
+        "/addons/**",
         "/packages/**",
         "/tests/**",
         "/test/**",
@@ -152,49 +153,49 @@ def _sparse_paths(repo_name: str) -> list[str]:
 
 def create_demo_repo() -> Repo:
     ensure_storage()
-    repo_id = f"demo-urbanseva-{uuid.uuid4().hex[:8]}"
+    repo_id = f"demo-business-flow-{uuid.uuid4().hex[:8]}"
     destination = REPOS_DIR / repo_id
     destination.mkdir(parents=True, exist_ok=True)
     files = {
         "package.json": """{"dependencies":{"express":"latest","zod":"latest"},"devDependencies":{"typescript":"latest"}}""",
         "src/app.ts": """
 import express from 'express';
-import { createBooking } from './booking.service';
-import { notifyProvider } from './notification.service';
+import { createIntake } from './intake.service';
+import { sendReviewNotice } from './review-notice.service';
 
 const app = express();
-app.post('/booking', async (req, res) => {
-  const booking = await createBooking(req.body);
-  await notifyProvider(booking.providerId);
-  res.json(booking);
+app.post('/intake', async (req, res) => {
+  const request = await createIntake(req.body);
+  await sendReviewNotice(request.id);
+  res.json(request);
 });
 
-app.post('/payments', async (req, res) => {
+app.post('/review', async (req, res) => {
   res.json({ ok: true });
 });
 """,
-        "src/booking.service.ts": """
-import { findProvider } from './provider.service';
-import { saveBooking } from './booking.repository';
+        "src/intake.service.ts": """
+import { assignReviewer } from './reviewer.service';
+import { saveRequest } from './request.repository';
 
-export async function createBooking(input: any) {
-  const provider = await findProvider(input.location);
-  return saveBooking({ ...input, providerId: provider.id });
+export async function createIntake(input: any) {
+  const reviewer = await assignReviewer(input.team);
+  return saveRequest({ ...input, reviewerId: reviewer.id });
 }
 """,
-        "src/provider.service.ts": """
-export async function findProvider(location: string) {
-  return { id: 'provider_1', location };
+        "src/reviewer.service.ts": """
+export async function assignReviewer(team: string) {
+  return { id: 'reviewer_1', team };
 }
 """,
-        "src/notification.service.ts": """
-export async function notifyProvider(providerId: string) {
-  return fetch('https://notification.example.com/send', { method: 'POST', body: providerId });
+        "src/review-notice.service.ts": """
+export async function sendReviewNotice(requestId: string) {
+  return fetch('https://workflow.example.com/review', { method: 'POST', body: requestId });
 }
 """,
-        "src/booking.repository.ts": """
-export async function saveBooking(booking: any) {
-  return { id: 'booking_1', ...booking };
+        "src/request.repository.ts": """
+export async function saveRequest(request: any) {
+  return { id: 'request_1', ...request };
 }
 """,
     }
@@ -202,7 +203,7 @@ export async function saveBooking(booking: any) {
         path = destination / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content.strip() + "\n", encoding="utf-8")
-    return Repo(id=repo_id, url="demo://urbanseva", name="UrbanSeva Demo", owner="demo", local_path=str(destination))
+    return Repo(id=repo_id, url="demo://business-flow", name="BusinessFlow Demo", owner="demo", local_path=str(destination))
 
 
 def repo_name_from_url(repo_url: str) -> str:

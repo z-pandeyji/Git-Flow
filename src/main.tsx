@@ -35,6 +35,16 @@ const FLOW_CATEGORIES = [
   "Command Execution Flow"
 ];
 const CONFIDENCE_LABELS = ["Low", "Medium", "High", "Very High"];
+const MEDUSA_REPO_URL = "https://github.com/medusajs/medusa";
+const DEFAULT_REPO_URL = MEDUSA_REPO_URL;
+const POPULAR_REPOS = [
+  { name: "Medusa", category: "Commerce", description: "Commerce engine that has been the most reliable demo target so far.", url: MEDUSA_REPO_URL },
+  { name: "Invoify", category: "Invoices", description: "Small Next.js invoice generator with invoice services and UI flows.", url: "https://github.com/al1abb/invoify" },
+  { name: "POS Invoice App", category: "POS / Invoices", description: "Small POS and invoice app with business billing workflows.", url: "https://github.com/pravee42/next-js-pos-invoice-application" },
+  { name: "Booking Calendar", category: "Booking", description: "Small booking calendar widget built around scheduling flows.", url: "https://github.com/vladimir-siedykh/booking-calendar" },
+  { name: "Go Help Desk", category: "Helpdesk", description: "Support ticketing app with a smaller repository surface.", url: "https://github.com/PubliciaLLC/go-help-desk" },
+  { name: "React Invoice Generator", category: "Invoices", description: "Small React invoice generator for a quick source scan.", url: "https://github.com/guranshdeol/Invoice-Generator" }
+];
 
 type ScanState = {
   scanId: string;
@@ -143,7 +153,7 @@ type Claim = {
 };
 
 function App() {
-  const [repoUrl, setRepoUrl] = useState("https://github.com/expressjs/express");
+  const [repoUrl, setRepoUrl] = useState(DEFAULT_REPO_URL);
   const [scan, setScan] = useState<ScanState | null>(null);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [structure, setStructure] = useState<Structure | null>(null);
@@ -159,8 +169,9 @@ function App() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function startScan(mode: "scan" | "demo") {
+  async function startScan(mode: "scan" | "demo", targetRepoUrl = repoUrl) {
     setBusy(true);
+    setRepoUrl(targetRepoUrl);
     setOverview(null);
     setStructure(null);
     setFlows([]);
@@ -173,7 +184,7 @@ function App() {
       const data = await fetchJson<{ scanId: string }>(`${API}/api/scans`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoUrl, mode })
+        body: JSON.stringify({ repoUrl: targetRepoUrl, mode })
       });
       setScan({ scanId: data.scanId, status: "queued", progress: 0, currentPhase: "fetch", errors: [] });
     } catch (error) {
@@ -252,6 +263,7 @@ function App() {
   const graph = useMemo(() => toFlowGraph(structure), [structure]);
   const repoType = String(overview?.classification.dominantType ?? "No scan");
   const classificationScore = Number(overview?.classification.confidenceScore ?? overview?.confidence_score ?? 0);
+  const scanInProgress = scan?.status === "queued" || scan?.status === "running";
 
   return (
     <main className="app-shell">
@@ -271,11 +283,19 @@ function App() {
             <input value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} placeholder="https://github.com/owner/repo" />
           </div>
           <div className="scan-actions">
-            <button onClick={() => void startScan("scan")} disabled={busy}>
-              {busy ? <Loader2 className="spin" size={16} /> : <Play size={16} />}
-              Scan
+            <button onClick={() => void startScan("scan")} disabled={busy || scanInProgress}>
+              {busy || scanInProgress ? <Loader2 className="spin" size={16} /> : <Play size={16} />}
+              Start queued scan
             </button>
-            <button className="secondary" onClick={() => void startScan("demo")} disabled={busy}>Demo</button>
+          </div>
+          <div className="repo-picks">
+            <span>Popular open-source business tools</span>
+            <select className="repo-picker" value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} disabled={busy || scanInProgress}>
+              {POPULAR_REPOS.map((repo) => (
+                <option key={repo.url} value={repo.url}>{repo.name} - {repo.category}</option>
+              ))}
+            </select>
+            <small>{POPULAR_REPOS.find((repo) => repo.url === repoUrl)?.description ?? "Enter a public GitHub repo URL above."}</small>
           </div>
         </section>
 
@@ -333,8 +353,9 @@ function App() {
         </nav>
 
         <section className="analysis-panel">
-          {view === "flows" && <FlowMap flows={filteredFlows} hasScan={Boolean(overview || diagnostics || scan?.status === "completed")} activeEvidenceId={selectedEvidence?.id} onSelect={(flow, evidenceId) => { setSelectedClaim(flowClaim(flow)); void loadEvidence(evidenceId); }} />}
-          {view === "structure" && (
+          {scanInProgress && <ScanProgressPanel scan={scan} repoUrl={repoUrl} />}
+          {!scanInProgress && view === "flows" && <FlowMap flows={filteredFlows} hasScan={Boolean(overview || diagnostics || scan?.status === "completed")} activeEvidenceId={selectedEvidence?.id} onSelect={(flow, evidenceId) => { setSelectedClaim(flowClaim(flow)); void loadEvidence(evidenceId); }} />}
+          {!scanInProgress && view === "structure" && (
             <div className="graph-panel">
               <ReactFlow
                 nodes={graph.nodes}
@@ -354,9 +375,9 @@ function App() {
               </ReactFlow>
             </div>
           )}
-          {view === "risks" && <RiskPanel risks={filteredRisks} onSelect={(risk) => { setSelectedClaim(riskClaim(risk)); void loadEvidence(risk.evidence_ids[0]); }} />}
-          {view === "unknowns" && <Unknowns diagnostics={diagnostics} />}
-          {view === "summary" && <SummaryPanel summary={summary} diagnostics={diagnostics} overview={overview} />}
+          {!scanInProgress && view === "risks" && <RiskPanel risks={filteredRisks} onSelect={(risk) => { setSelectedClaim(riskClaim(risk)); void loadEvidence(risk.evidence_ids[0]); }} />}
+          {!scanInProgress && view === "unknowns" && <Unknowns diagnostics={diagnostics} />}
+          {!scanInProgress && view === "summary" && <SummaryPanel summary={summary} diagnostics={diagnostics} overview={overview} />}
         </section>
       </section>
 
@@ -369,6 +390,22 @@ function App() {
 
 function Metric({ title, value, detail }: { title: string; value: string; detail: string }) {
   return <article className="metric"><span>{title}</span><strong>{value}</strong><small>{detail}</small></article>;
+}
+
+function ScanProgressPanel({ scan, repoUrl }: { scan: ScanState | null; repoUrl: string }) {
+  const progress = scan?.progress ?? 0;
+  return (
+    <div className="scan-progress-panel">
+      <Loader2 className="spin" size={34} />
+      <span>Scan in progress</span>
+      <h2>{scan?.currentPhase ?? "queued"}</h2>
+      <p>{repoUrl}</p>
+      <div className="progress-track" aria-label={`Scan progress ${progress}%`}>
+        <div style={{ width: `${progress}%` }} />
+      </div>
+      <strong>{progress}%</strong>
+    </div>
+  );
 }
 
 function StatusLine({ scan }: { scan: ScanState | null }) {

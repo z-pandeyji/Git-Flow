@@ -30,6 +30,8 @@ class AnalysisTest(unittest.TestCase):
         flows = build_flows(analysis)
         risks = find_risks(analysis)
 
+        self.assertEqual(repo.name, "BusinessFlow Demo")
+        self.assertEqual(repo.url, "demo://business-flow")
         self.assertEqual(analysis.overview.classification["dominantType"], "Business Application")
         self.assertGreaterEqual(analysis.overview.counts["routes"], 2)
         self.assertTrue(flows)
@@ -45,12 +47,12 @@ class AnalysisTest(unittest.TestCase):
         self.assertTrue(all(step.actor and step.action and step.target for flow in flows for step in flow.steps))
         self.assertTrue(all(step.narrative for flow in flows for step in flow.steps))
         self.assertTrue(any(risk.category == "missing-validation" for risk in risks))
-        booking_flow = next(flow for flow in flows if flow.name == "Booking Flow")
-        payments_flow = next(flow for flow in flows if flow.name == "Payments Flow")
-        self.assertIn("src/booking.service.ts", booking_flow.source_files)
-        self.assertNotIn("src/booking.service.ts", payments_flow.source_files)
-        self.assertIn("Client sends POST /booking", booking_flow.answer)
-        self.assertIn("Database state may change", booking_flow.side_effects)
+        intake_flow = next(flow for flow in flows if flow.name == "Intake Flow")
+        review_flow = next(flow for flow in flows if flow.name == "Review Flow")
+        self.assertIn("src/intake.service.ts", intake_flow.source_files)
+        self.assertNotIn("src/intake.service.ts", review_flow.source_files)
+        self.assertIn("Client sends POST /intake", intake_flow.answer)
+        self.assertIn("Database state may change", intake_flow.side_effects)
 
     def test_validate_public_github_url_rejects_non_github(self):
         with self.assertRaisesRegex(ValueError, "public GitHub"):
@@ -353,6 +355,51 @@ This sentence captures the core idea."""
         paths = _sparse_paths("Scrapling")
 
         self.assertIn("/scrapling/**", paths)
+
+    def test_sparse_checkout_includes_odoo_addons(self):
+        paths = _sparse_paths("odoo")
+
+        self.assertIn("/addons/**", paths)
+
+    def test_frontend_has_six_curated_live_demo_repos(self):
+        source = Path("src/main.tsx").read_text(encoding="utf-8")
+        urls = [
+            "https://github.com/medusajs/medusa",
+            "https://github.com/al1abb/invoify",
+            "https://github.com/pravee42/next-js-pos-invoice-application",
+            "https://github.com/vladimir-siedykh/booking-calendar",
+            "https://github.com/PubliciaLLC/go-help-desk",
+            "https://github.com/guranshdeol/Invoice-Generator",
+        ]
+
+        self.assertIn("DEFAULT_REPO_URL = MEDUSA_REPO_URL", source)
+        self.assertIn("useState(DEFAULT_REPO_URL)", source)
+        for url in urls:
+            self.assertEqual(source.count(url), 1, url)
+        self.assertIn("POPULAR_REPOS.map", source)
+        self.assertIn("<select className=\"repo-picker\"", source)
+        self.assertIn("onChange={(event) => setRepoUrl(event.target.value)}", source)
+        self.assertNotIn("onClick={() => void startScan(\"scan\", repo.url)}", source)
+
+    def test_frontend_shows_centered_scan_progress_state(self):
+        source = Path("src/main.tsx").read_text(encoding="utf-8")
+
+        self.assertIn('scan?.status === "queued" || scan?.status === "running"', source)
+        self.assertIn("ScanProgressPanel", source)
+        self.assertIn("Scan in progress", source)
+
+    def test_old_synthetic_demo_branding_is_absent_from_public_source(self):
+        checked_paths = [
+            Path("src/main.tsx"),
+            Path("backend/app/scanner.py"),
+            Path("README.md"),
+            Path("backend/README.md"),
+        ]
+        old_demo_brand = "urban" + "seva"
+
+        for path in checked_paths:
+            source = path.read_text(encoding="utf-8").lower()
+            self.assertNotIn(old_demo_brand, source, str(path))
 
     def test_load_scan_does_not_create_directory_for_missing_scan(self):
         with TemporaryDirectory() as tmp:
