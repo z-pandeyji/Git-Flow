@@ -1,172 +1,81 @@
 # Business GitFlow
 
-Evidence-first repository analysis for turning source code into business flow maps.
+Business GitFlow is a working prototype for exploring how a repository behaves, not just how its files are arranged.
 
-Business GitFlow is a working prototype that scans a public GitHub repository, builds a structure graph, detects behavior flows, ranks risky areas, and links every claim back to source-level evidence.
+It scans a public GitHub repository, builds a small structure graph, tries to find behavior flows, and shows the source evidence used for each detected flow or risk. The analysis is heuristic, so the app also reports unknowns instead of pretending it understood everything.
 
-Most repository visualization tools answer:
+## Why I Built It
 
-> What files exist?
+Most repo visualization tools are good at showing folders, files, and dependencies.
 
-Business GitFlow tries to answer:
+When I read larger codebases, I usually need a different answer:
 
-> How does this system actually work?
+> What actually happens when this system runs?
 
-It is designed for developers joining larger codebases who need more than folders, files, and dependency edges. The goal is to show structure, workflows, confidence, risks, unknowns, and the source snippets behind each claim.
+This prototype is my attempt at that question. It is not a finished product or a full static-analysis engine yet, but it is a working version of the idea.
 
-## What It Does
+## What Currently Works
 
-- Scans a public GitHub repository.
-- Classifies the repository type, such as business application, CLI, runtime, library, or infrastructure.
-- Builds a structure graph from files, routes, imports, services, and detected code relationships.
-- Detects execution and behavior flows from source evidence.
-- Generates business-facing flow summaries.
-- Calculates confidence scores for flows, graph edges, and risks.
-- Ranks risk areas such as missing validation, broad service files, external side effects, and low-confidence paths.
-- Shows source evidence for each detected claim.
-- Reports unknown regions, including dynamic imports, unresolved local dependencies, generated code, or unsupported syntax.
+The current test suite covers these behaviors:
 
-## Why This Exists
-
-Architecture diagrams explain where things are.
-
-Developers also need to know what happens:
-
-- What happens when a customer signs up?
-- Where does the payment flow move?
-- Which files participate in an approval process?
-- Which execution paths look risky?
-- Which claims are actually backed by code evidence?
-
-Business GitFlow is built around one rule:
-
-> No workflow, risk, summary, or relationship should be shown unless there is source-level evidence behind it.
-
-Every claim should be able to answer:
-
-- Where did this come from?
-- Which file supports it?
-- How confident is the system?
-- What part of the code proves it?
+- Public GitHub URL validation and local scan creation.
+- Demo repository analysis that produces behavior flows with evidence IDs, confidence labels, source files, and source locations.
+- Repository classification for sample business app, infrastructure, CLI, library, and runtime repositories.
+- Structure graph generation from files, routes, symbols, and local JS/TS imports.
+- Directory `index.ts` import resolution, including flow expansion through that import.
+- Unknown-region reporting for missing local imports.
+- Ranked risk findings with evidence metadata.
+- Local Ollama summaries disabled by default, with deterministic summaries still working.
+- GitHub archive fallback when a shallow Git clone fails.
 
 ## Tech Stack
 
-- Frontend: React, TypeScript, Vite, React Flow, Lucide icons.
+- Frontend: React, TypeScript, Vite, React Flow.
 - Backend: FastAPI, Pydantic, Python.
-- Repository access: shallow Git clone with sparse checkout and GitHub archive fallback.
-- Optional AI summaries: local Ollama only, disabled by default.
-- Storage: local `.bfo-data/` directory for cloned repos, scan metadata, artifacts, and evidence indexes.
+- Storage: local `.bfo-data/` folder for cloned repos and scan artifacts.
+- Optional summaries: local Ollama, disabled by default.
 
 ## Quick Start
 
-### 1. Clone and install frontend dependencies
+Install frontend dependencies:
 
 ```sh
 npm install
 ```
 
-### 2. Create the backend virtual environment
+Create the backend environment:
 
 ```sh
 python3 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 ```
 
-### 3. Start the backend
+Start the backend:
 
 ```sh
 .venv/bin/python -m uvicorn backend.app.api:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### 4. Start the frontend
-
-In another terminal:
+Start the frontend in another terminal:
 
 ```sh
 npm run dev
 ```
 
-Open the Vite URL, usually:
+Open:
 
 ```text
 http://127.0.0.1:5173
 ```
 
-## Usage
+## How To Use
 
-1. Enter a public GitHub repository URL, for example `https://github.com/expressjs/express`.
-2. Click `Scan`.
-3. Wait for the pipeline to complete:
-   - fetch
-   - classify repository
-   - build structure graph
-   - detect execution paths
-   - generate behavior flows
-   - calculate confidence
-   - rank risks
-   - persist artifacts
-4. Explore:
-   - Flow Map
-   - Structure Graph
-   - Risks
-   - Unknowns
-   - Summary
-5. Select a flow step, risk, or graph node to inspect the source evidence behind it.
+1. Enter a public GitHub repo URL, for example `https://github.com/expressjs/express`.
+2. Click `Scan`, or use `Demo` for the built-in demo repository.
+3. Review the Flow Map, Structure Graph, Risks, Unknowns, and Summary tabs.
+4. Select a flow step, risk, or graph node to inspect the source evidence.
 
-You can also use `Demo` to scan the built-in demo repository without entering a GitHub URL.
-
-## API Endpoints
-
-The backend exposes these local endpoints:
-
-```text
-GET  /health
-POST /api/scans
-GET  /api/scans/{scan_id}
-GET  /api/scans/{scan_id}/overview
-GET  /api/scans/{scan_id}/structure
-GET  /api/scans/{scan_id}/flows
-GET  /api/scans/{scan_id}/risks
-GET  /api/scans/{scan_id}/diagnostics
-GET  /api/scans/{scan_id}/summary
-GET  /api/evidence/{evidence_id}
-```
-
-Example scan request:
-
-```sh
-curl -X POST http://127.0.0.1:8000/api/scans \
-  -H "Content-Type: application/json" \
-  -d '{"repoUrl":"https://github.com/expressjs/express","mode":"scan"}'
-```
-
-## Generated Artifacts
-
-Scan output is stored locally in `.bfo-data/scans/{scan_id}/`.
-
-Generated files include:
-
-- `repository.json`
-- `graph.json`
-- `flows.json`
-- `risks.json`
-- `evidence.json`
-- `diagnostics.json`
-- `summary.json`
-
-The `.bfo-data/` folder is intentionally ignored by Git.
-
-## Optional AI Summaries
-
-Business GitFlow works without AI. By default, summaries are deterministic and evidence-backed.
-
-To enable local AI-assisted wording through Ollama:
-
-```sh
-BFO_ENABLE_AI=1 OLLAMA_MODEL=gemma4 .venv/bin/python -m uvicorn backend.app.api:app --reload --host 127.0.0.1 --port 8000
-```
-
-AI is used only for optional summary wording. The detected flows, evidence, confidence, and risk ranking are still produced by deterministic repository analysis.
+Scan artifacts are written locally under `.bfo-data/scans/{scan_id}/`.
 
 ## Testing
 
@@ -182,18 +91,14 @@ Build the frontend:
 npm run build
 ```
 
-## Current Limitations
+## Limitations
 
 - Public GitHub repositories only.
-- Private repository support and deletion controls are not complete yet.
-- Analysis is heuristic and evidence-first, not a full compiler or runtime tracer.
-- Dynamic language behavior, reflection, generated code, and unresolved dependencies are reported as unknowns when detected.
-- Large repositories may take longer and are scanned through a sparse checkout strategy.
-
-## Repository Status
-
-This repo contains the working prototype/code for Business GitFlow. Some demo or video visuals may use AI-assisted presenter imagery or slightly different product styling for explanation, but this repository is the implementation source.
+- Static heuristic analysis, not a compiler, runtime tracer, or full security scanner.
+- JS/TS route and import flow detection is the strongest tested path right now.
+- Results can miss dynamic behavior, generated code, reflection, framework magic, or runtime wiring.
+- AI summaries are optional wording only. They are not the source of truth.
 
 ## License
 
-No license has been selected yet.
+MIT License. See [LICENSE](LICENSE).
