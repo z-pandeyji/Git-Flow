@@ -1,6 +1,7 @@
-*.md
 *.log
 .DS_Store
+Setup.md
+codex.md
 .bfo-data/
 .venv/
 node_modules/

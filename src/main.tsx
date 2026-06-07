@@ -259,7 +259,7 @@ function App() {
         <div className="brand">
           <Map size={22} />
           <div>
-            <p>Business Flow Observatory</p>
+            <p>Business GitFlow</p>
             <strong>Flow Map</strong>
           </div>
         </div>
@@ -307,7 +307,7 @@ function App() {
       <section className="workspace">
         <header className="topbar">
           <div>
-            <p className="eyebrow">GitDiagram shows structure. Business Flow Observatory shows structure + flows + evidence.</p>
+            <p className="eyebrow">GitDiagram shows structure. Business GitFlow shows structure + flows + evidence.</p>
             <h1>{overview ? `${overview.repo.owner}/${overview.repo.name}` : "What happens when X occurs?"}</h1>
           </div>
           <div className="classification-card">

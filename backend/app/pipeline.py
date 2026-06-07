@@ -72,7 +72,7 @@ def build_summary(analysis: AnalyzerOutput, flows_count: int, risks_count: int, 
     repo_type = str(analysis.overview.classification.get("dominantType", "Unknown"))
     return Summary(
         title=f"{analysis.repo.owner}/{analysis.repo.name} Flow Map",
-        positioning="GitDiagram shows structure. Business Flow Observatory shows structure + flows + evidence.",
+        positioning="GitDiagram shows structure. Business GitFlow shows structure + flows + evidence.",
         deterministic=f"{repo_type} analysis produced {flows_count} evidence-backed flows and {risks_count} ranked risks from {analysis.overview.evidence_count} evidence sources.",
         ai_available=ai_available,
     )

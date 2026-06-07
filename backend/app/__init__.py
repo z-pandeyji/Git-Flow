@@ -1,2 +1,1 @@
-"""Business Flow Observatory backend."""
-
+"""Business GitFlow backend."""

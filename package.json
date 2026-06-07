@@ -1,5 +1,5 @@
 {
-  "name": "business-flow-observatory",
+  "name": "business-gitflow",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -19,4 +19,3 @@
   },
   "devDependencies": {}
 }
-

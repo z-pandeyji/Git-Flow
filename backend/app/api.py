@@ -22,7 +22,7 @@ SCAN_QUEUE_CAPACITY = int(os.getenv("BFO_SCAN_QUEUE_CAPACITY", "8"))
 SCAN_EXECUTOR = ThreadPoolExecutor(max_workers=SCAN_MAX_WORKERS)
 SCAN_CAPACITY = BoundedSemaphore(SCAN_QUEUE_CAPACITY)
 
-app = FastAPI(title="Business Flow Observatory API", version="0.1.0")
+app = FastAPI(title="Business GitFlow API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
